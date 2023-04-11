@@ -1,5 +1,5 @@
-build:	ipk-sniffer.c
-	gcc -std=gnu99 ipk-sniffer.c -o ipk-sniffer
+build:	ipk-sniffer.cpp
+	c++ --std=c++20 ipk-sniffer.cpp -o ipk-sniffer -lpcap
 test: ipk-sniffer test.py
 	python3 test.py
 
