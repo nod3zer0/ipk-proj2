@@ -74,6 +74,9 @@ typedef struct args_t {
   bool help;
   int num;
   bool err;
+  bool NDP;
+  bool IGMP;
+  bool MLD;
 } argsT;
 
 typedef struct {
@@ -83,11 +86,14 @@ typedef struct {
 
 typedef struct packet_data_t {
   char timestamp[100];
-  char source_mac[100];
-  char destination_mac[100];
+  char source_mac[1000];
+  char destination_mac[1000];
   char source_ip[1000];
   char destination_ip[1000];
-  char protocol[100];
+  char protocol[1000];
+  bool NDP;
+  bool IGMP;
+  bool MLD;
   uint16_t source_port;
   uint16_t destination_port;
 } packetDataT;
@@ -116,6 +122,9 @@ argsT parseArgs(int argc, const char *argv[]) {
   args.icmp4 = false;
   args.icmp6 = false;
   args.num = 0;
+  args.IGMP = false;
+  args.MLD = false;
+  args.NDP = false;
   args.interface = (char *)malloc(sizeof(char) * 1000);
 
   // main loop for parsing arguments
@@ -157,6 +166,15 @@ argsT parseArgs(int argc, const char *argv[]) {
     }
     if (strcmp(argv[i], "--icmp6") == 0) {
       args.icmp6 = true;
+    }
+    if (strcmp(argv[i], "--ndp") == 0) {
+      args.NDP = true;
+    }
+    if (strcmp(argv[i], "--igmp") == 0) {
+      args.IGMP = true;
+    }
+    if (strcmp(argv[i], "--mld") == 0) {
+      args.MLD = true;
     }
     if (strcmp(argv[i], "-n") == 0) {
       if (i + 1 >= argc || atoi(argv[i + 1]) <= 0) {
@@ -329,23 +347,6 @@ void get_ipv4_packet_info(const u_char *packet,
                           const struct pcap_pkthdr *packet_header,
                           packet_data_t *packet_data) {
 
-  struct ether_header *eth_header;
-  eth_header = (struct ether_header *)packet_header;
-  char timestamp[50];
-  format_timestamp(packet_header->ts, timestamp);
-
-  strcpy(packet_data->timestamp, timestamp);
-  //   fprintf(stdout, "timestamp: %s\n", timestamp);
-  //   fprintf(stdout, "src MAC: %s\n",
-  //           ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
-  //   fprintf(stdout, "dst MAC: %s \n",
-  //           ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
-  //   fprintf(stdout, "frame length: %d\n", packet_header->len);
-  strcpy(packet_data->source_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
-  strcpy(packet_data->destination_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
-
   const u_char *ip_header;
   const u_char *tcp_header;
   const u_char *payload;
@@ -359,14 +360,8 @@ void get_ipv4_packet_info(const u_char *packet,
   // convert to number of bytes
   ip_header_length = ip_header_length * 4;
 
-  // get src and dst ip address by adding 12 and 16 to the ip header
-  //   fprintf(stdout, "src IP: %s\n",
-  //           inet_ntoa(*(struct in_addr *)(ip_header + 12)));
-  //   fprintf(stdout, "dst IP: %s\n",
-  //           inet_ntoa(*(struct in_addr *)(ip_header + 16)));
-
-  inet_ntop(AF_INET, (struct in_addr *)(ip_header + 12),
-            packet_data->source_ip, INET_ADDRSTRLEN);
+  inet_ntop(AF_INET, (struct in_addr *)(ip_header + 12), packet_data->source_ip,
+            INET_ADDRSTRLEN);
   inet_ntop(AF_INET, (struct in_addr *)(ip_header + 16),
             packet_data->destination_ip, INET_ADDRSTRLEN);
 
@@ -379,13 +374,6 @@ void get_ipv4_packet_info(const u_char *packet,
         ntohs(*(u_short *)(ip_header + ip_header_length));
     packet_data->destination_port =
         ntohs(*(u_short *)(ip_header + ip_header_length + 2));
-    // printf("protocol: TCP\n");
-    // fprintf(stdout, "src port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length)));
-    // fprintf(stdout, "dst port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length + 2)));
-
-    // print_packet_data(packet, packet_header);
 
     break;
   case IPPROTO_UDP:
@@ -394,38 +382,12 @@ void get_ipv4_packet_info(const u_char *packet,
         ntohs(*(u_short *)(ip_header + ip_header_length));
     packet_data->destination_port =
         ntohs(*(u_short *)(ip_header + ip_header_length + 2));
-    // printf("protocol: UDP\n");
-    // fprintf(stdout, "src port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length)));
-    // fprintf(stdout, "dst port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length + 2)));
     break;
   case IPPROTO_ICMP:
     strcpy(packet_data->protocol, "ICMP4");
-    packet_data->source_port =
-        ntohs(*(u_short *)(ip_header + ip_header_length));
-    packet_data->destination_port =
-        ntohs(*(u_short *)(ip_header + ip_header_length + 2));
-    // printf("protocol: ICMP\n");
-    // fprintf(stdout, "dst port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length)));
-    // fprintf(stdout, "src port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length + 2)));
     break;
-  case IPPROTO_ICMPV6:
-    strcpy(packet_data->protocol, "ICMP6");
-    packet_data->source_port =
-        ntohs(*(u_short *)(ip_header + ip_header_length));
-    packet_data->destination_port =
-        ntohs(*(u_short *)(ip_header + ip_header_length + 2));
-    // printf("protocol: ICMPv6\n");
-    // fprintf(stdout, "dst port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length)));
-    // fprintf(stdout, "src port: %d\n",
-    //         ntohs(*(u_short *)(ip_header + ip_header_length + 2)));
-    break;
-  default:
-    fprintf(stdout, "protocol: unknown\n");
+  case IPPROTO_IGMP:
+    packet_data->IGMP = true;
     break;
   }
   // print_packet_data(packet, packet_header);
@@ -435,23 +397,6 @@ void get_ipv4_packet_info(const u_char *packet,
 void get_ipv6_packet_info(const u_char *packet,
                           const struct pcap_pkthdr *packet_header,
                           packet_data_t *packet_data) {
-
-  struct ether_header *eth_header;
-  eth_header = (struct ether_header *)packet_header;
-  char timestamp[50];
-  format_timestamp(packet_header->ts, timestamp);
-
-  strcpy(packet_data->timestamp, timestamp);
-     fprintf(stdout, "timestamp: %s\n", timestamp);
-     fprintf(stdout, "src MAC: %s\n",
-             ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
-     fprintf(stdout, "dst MAC: %s \n",
-             ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
-    fprintf(stdout, "frame length: %d\n", packet_header->len);
-  strcpy(packet_data->source_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
-  strcpy(packet_data->destination_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
 
   const u_char *ip_header;
   const u_char *tcp_header;
@@ -464,35 +409,49 @@ void get_ipv6_packet_info(const u_char *packet,
   // its lenght is in the first 4 bits of the first byte
   ip_header_length = ((*ip_header) & 0x0F);
   // convert to number of bytes
-  ip_header_length = ip_header_length * 4;
+  ip_header_length = 40;
 
-  // get src and dst ip address by adding 12 and 16 to the ip header
-  //   fprintf(stdout, "src IP: %s\n",
-  //           inet_ntoa(*(struct in_addr *)(ip_header + 12)));
-  //   fprintf(stdout, "dst IP: %s\n",
-  //           inet_ntoa(*(struct in_addr *)(ip_header + 16)));
-
-  inet_ntop(AF_INET6, (struct in6_addr *)(ip_header +8),
+  inet_ntop(AF_INET6, (struct in6_addr *)(ip_header + 8),
             packet_data->source_ip, INET6_ADDRSTRLEN);
   inet_ntop(AF_INET6, (struct in6_addr *)(ip_header + 24),
             packet_data->destination_ip, INET6_ADDRSTRLEN);
 
+  u_char protocol = *(ip_header + 6);
 
+  switch (protocol) {
+  case IPPROTO_TCP:
+    strcpy(packet_data->protocol, "TCP");
+    packet_data->source_port =
+        ntohs(*(u_short *)(ip_header + ip_header_length));
+    packet_data->destination_port =
+        ntohs(*(u_short *)(ip_header + ip_header_length + 2));
+
+    break;
+  case IPPROTO_UDP:
+    strcpy(packet_data->protocol, "UDP");
+    packet_data->source_port =
+        ntohs(*(u_short *)(ip_header + ip_header_length));
+    packet_data->destination_port =
+        ntohs(*(u_short *)(ip_header + ip_header_length + 2));
+
+    break;
+  case IPPROTO_ICMPV6:
+    strcpy(packet_data->protocol, "ICMP6");
+
+    u_char type = *(ip_header + ip_header_length);
+    if (type == 133 || type == 134 || type == 135 || type == 136 ||
+        type == 137) {
+      packet_data->NDP = true;
+    } else if (type == 130 || type == 131 || type == 132) {
+      packet_data->MLD = true;
+    }
+    break;
+  }
 }
 
 void get_arp_packet_info(const u_char *packet,
                          const struct pcap_pkthdr *packet_header,
                          packet_data_t *packet_data) {
-
-  struct ether_header *eth_header;
-  eth_header = (struct ether_header *)packet_header;
-  char timestamp[50];
-  format_timestamp(packet_header->ts, timestamp);
-  strcpy(packet_data->timestamp, timestamp);
-  strcpy(packet_data->source_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
-  strcpy(packet_data->destination_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
 
   const u_char *arp_header;
   const u_char *tcp_header;
@@ -500,13 +459,22 @@ void get_arp_packet_info(const u_char *packet,
 
   arp_header = packet + ETHERNET_HEADER_LENGHT;
 
+  if (*(arp_header + 2) == 0x08) {
+    printf("IPV4_______________________");
+    inet_ntop(AF_INET, (struct in_addr *)(arp_header + 8),
+              packet_data->source_ip, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, (struct in_addr *)(arp_header + 14),
+              packet_data->destination_ip, INET_ADDRSTRLEN);
+
+  } else if (*(arp_header + 2) == 0x86 && *(arp_header + 4) == 0xdd) {
+    printf("IPV6_______________________");
+    inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 8),
+              packet_data->source_ip, INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 14),
+              packet_data->destination_ip, INET_ADDRSTRLEN);
+  }
   // filter ethernet type
   strcpy(packet_data->protocol, "ARP");
-
-    inet_ntop(AF_INET, (struct in_addr *)(arp_header + 8),
-            packet_data->source_ip, INET_ADDRSTRLEN);
-  inet_ntop(AF_INET, (struct in_addr *)(arp_header + 14),
-            packet_data->destination_ip, INET_ADDRSTRLEN);
 }
 
 // TPDO:rewrite
@@ -515,59 +483,77 @@ void my_packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
 
   struct ether_header *eth_header;
   packet_data_t packet_data;
-
+  packet_data = {
+      .timestamp = "",
+      .source_mac = "",
+      .destination_mac = "",
+      .source_ip = "",
+      .destination_ip = "",
+      .protocol = "",
+      .NDP = false,
+      .IGMP = false,
+      .MLD = false,
+      .source_port = 0,
+      .destination_port = 0,
+  };
   argsT args = *(argsT *)conf;
 
-  // print args
-  //   printf("args: %s\n", args.interface);
-  //   printf("args: %d\n", args.arp);
-  //   printf("args: %d\n", args.tcp);
-  //   printf("args: %d\n", args.udp);
-  //   printf("args: %d\n", args.icmp);
-  //   printf("args: %d\n", args.num);
-  //   printf("args: %d\n", args.port);
-
-  /* The packet is larger than the ether_header struct,
-     but we just want to look at the first part of the packet
-     that contains the header. We force the compiler
-     to treat the pointer to the packet as just a pointer
-     to the ether_header. The data payload of the packet comes
-     after the headers. Different packet types have different header
-     lengths though, but the ethernet header is always the same (14 bytes) */
-  eth_header = (struct ether_header *)packet_body;
+  eth_header = (struct ether_header *)packet_header;
+  char timestamp[50];
+  format_timestamp(packet_header->ts, timestamp);
+  strcpy(packet_data.timestamp, timestamp);
+  strcpy(packet_data.source_mac,
+         ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
+  strcpy(packet_data.destination_mac,
+         ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
 
   if (ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
-    //get_ipv4_packet_info(packet_body, packet_header, &packet_data);
-	return;
+    get_ipv4_packet_info(packet_body, packet_header, &packet_data);
+    printf("IPV4_______________________");
   } else if (ntohs(eth_header->ether_type) == ETHERTYPE_ARP) {
-    //get_arp_packet_info(packet_body, packet_header, &packet_data);
-	return;
+    get_arp_packet_info(packet_body, packet_header, &packet_data);
+    printf("ARP_______________________");
   } else if (ntohs(eth_header->ether_type) == ETHERTYPE_IPV6) {
     get_ipv6_packet_info(packet_body, packet_header, &packet_data);
+    printf("IPV6_______________________");
   } else if (ntohs(eth_header->ether_type) == ETHERTYPE_REVARP) {
     printf("Reverse reverse arp\n");
+  } else {
+    return;
   }
 
-  if (args.tcp == 1 && strcmp(packet_data.protocol, "TCP") == 0 ||
-      args.udp == 1 && strcmp(packet_data.protocol, "UDP") == 0 ||
-      args.icmp4 == 1 && strcmp(packet_data.protocol, "ICMP4") == 0 ||
-      args.icmp6 == 1 && strcmp(packet_data.protocol, "ICMP6") == 0 ||
-      args.arp == 1 && strcmp(packet_data.protocol, "ARP") == 0 ||
+  if ((args.tcp == 1 && strcmp(packet_data.protocol, "TCP") == 0) ||
+      (args.udp == 1 && strcmp(packet_data.protocol, "UDP") == 0) ||
+      (args.icmp4 == 1 && strcmp(packet_data.protocol, "ICMP4") == 0 )||
+      (args.icmp6 == 1 && strcmp(packet_data.protocol, "ICMP6") == 0 )||
+      (args.arp == 1 && strcmp(packet_data.protocol, "ARP") == 0) ||
+      (args.IGMP == 1 && packet_data.IGMP == true) ||
+      (args.NDP == 1 && packet_data.NDP == true )||
+      (args.MLD == 1 && packet_data.MLD == true )||
       (args.tcp == 0 && args.udp == 0 && args.icmp4 == 0 && args.icmp6 == 0 &&
-       args.arp == 0)) {
+       args.arp == 0 && args.IGMP == 0 && args.NDP == 0 && args.MLD == 0)) {
 
     if (args.port == 0 || args.port == packet_data.source_port ||
         args.port == packet_data.destination_port) {
-      fprintf(stdout, "src timestamp: %s\n", packet_data.timestamp);
-      fprintf(stdout, "src MAC: %s\n", packet_data.source_mac);
-      fprintf(stdout, "dst MAC: %s\n", packet_data.destination_mac);
-      fprintf(stdout, "src IP: %s\n", packet_data.source_ip);
-      fprintf(stdout, "dst IP: %s\n", packet_data.destination_ip);
-      fprintf(stdout, "protocol: %s\n", packet_data.protocol);
-      fprintf(stdout, "src port: %d\n", packet_data.source_port);
-      fprintf(stdout, "dst port: %d\n", packet_data.destination_port);
+      if (strcmp(packet_data.timestamp, "") != 0)
+        fprintf(stdout, "timestamp: %s\n", packet_data.timestamp);
+      if (strcmp(packet_data.source_mac, "") != 0)
+        fprintf(stdout, "src MAC: %s\n", packet_data.source_mac);
+      if (strcmp(packet_data.destination_mac, "") != 0)
+        fprintf(stdout, "dst MAC: %s\n", packet_data.destination_mac);
+      if (strcmp(packet_data.source_ip, "") != 0)
+        fprintf(stdout, "src IP: %s\n", packet_data.source_ip);
+      if (strcmp(packet_data.destination_ip, "") != 0)
+        fprintf(stdout, "dst IP: %s\n", packet_data.destination_ip);
+      if (strcmp(packet_data.protocol, "") != 0)
+        fprintf(stdout, "protocol: %s\n", packet_data.protocol);
+      if (packet_data.source_port != 0)
+        fprintf(stdout, "src port: %d\n", packet_data.source_port);
+      if (packet_data.destination_port != 0)
+        fprintf(stdout, "dst port: %d\n", packet_data.destination_port);
       printf("\n");
-      print_packet_data(packet_body, packet_header);
+      if (packet_body != NULL)
+        print_packet_data(packet_body, packet_header);
       printf("\n\n");
     }
   }
