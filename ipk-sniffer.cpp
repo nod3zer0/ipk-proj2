@@ -24,29 +24,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#elif _WIN32 // windows header files
-
-#include <Windows.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
-#pragma comment(lib, "Ws2_32.lib")
-
-#define bzero(b, len) (memset((b), '\0', (len)), (void)0)
-#define bcopy(b1, b2, len) (memmove((b2), (b1), (len)), (void)0)
-
 #endif
 
 #define ETHERNET_HEADER_LENGHT 14
 
 /**
- * @brief struct for storing arguments from command line for clients
+ * @brief struct for storing arguments from command line
  *
  */
 typedef struct args_t {
@@ -65,6 +48,10 @@ typedef struct args_t {
   bool MLD;
 } argsT;
 
+/**
+ * @brief struct for storing packet data
+ *
+ */
 typedef struct packet_data_t {
   char timestamp[100];
   char source_mac[1000];
@@ -79,16 +66,36 @@ typedef struct packet_data_t {
   uint16_t destination_port;
 } packetDataT;
 
+// GLOBAL VARIABLES FOR INTERRUPT HANDLING
+pcap_t *handle;
+
 // FUNCTION DECLARATIONS
 argsT parseArgs(int argc, const char *argv[]);
 void printHelp(void);
+void format_timestamp(struct timeval ts, char *timestamp);
+void print_active_ndevices();
+void print_packet_data(const u_char *packet,
+                       const struct pcap_pkthdr *packet_header);
+void get_ipv4_packet_info(const u_char *packet,
+                          const struct pcap_pkthdr *packet_header,
+                          packet_data_t *packet_data);
+void get_ipv6_packet_info(const u_char *packet,
+                          const struct pcap_pkthdr *packet_header,
+                          packet_data_t *packet_data);
+void get_arp_packet_info(const u_char *packet,
+                         const struct pcap_pkthdr *packet_header,
+                         packet_data_t *packet_data);
+int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
+                   const u_char *packet_body);
+
+void INThandler(int sig) { pcap_close(handle); }
 
 /**
- * @brief parses arguments for client
+ * @brief parses arguments for sniffer
  *
  * @param argc
  * @param argv
- * @return args
+ * @return argsT
  */
 argsT parseArgs(int argc, const char *argv[]) {
 
@@ -197,38 +204,38 @@ void printHelp() {
          "\\_\\    \\ \\_____\\  \\ \\_\\ \\_\\\n"
          "        \\/_____/   \\/_/ \\/_/   \\/_/   \\/_/     \\/_/     "
          "\\/_____/   \\/_/ /_/\n");
+  // TODO: fix help
   printf("client for the IPK Calculator Protocol\n\n");
   printf("Usage: ipkcpc -h <host> -p <port> -m <mode>\n\n");
-#ifdef __linux__
-  printf("  -h <host>   IPv4 address or hostname of the server\n");
-#elif _WIN32
-  printf("  -h <host>   IPv4 address of the server\n");
-#endif
   printf("  -p <port>   port of the server\n");
   printf("  -m <mode>   tcp or udp\n");
   printf(" --help   print this help\n");
   printf("\n\n");
   printf("Example: ipkcpc -h 1.2.3.4 -p 2023 -m udp\n");
 }
-// TPDO:rewrite
-void print_packet_info(const u_char *packet, struct pcap_pkthdr packet_header) {
 
-}
-
+/**
+ * @brief formats timestamp to ISO 8601
+ *
+ * @param ts
+ * @param timestmp
+ */
 void format_timestamp(struct timeval ts, char *timestmp) {
   struct tm *ltime;
-  char timestr[50];
+  char timestr[100];
   ltime = localtime(&ts.tv_sec);
   strftime(timestr, sizeof timestr, "%FT%T%z", ltime);
   sprintf(timestmp, "%s.%06ld", timestr, ts.tv_usec);
   return;
 }
 
+/**
+ * @brief prints active network devices
+ *
+ */
 void print_active_ndevices() {
-
   pcap_if_t *device;
   char error_buffer[PCAP_ERRBUF_SIZE];
-
   /* Find a device */
   pcap_findalldevs(&device, error_buffer);
   if (device == NULL) {
@@ -242,6 +249,12 @@ void print_active_ndevices() {
   }
 }
 
+/**
+ * @brief prints packet data
+ *
+ * @param packet
+ * @param packet_header
+ */
 void print_packet_data(const u_char *packet,
                        const struct pcap_pkthdr *packet_header) {
   // print payload
@@ -269,6 +282,13 @@ void print_packet_data(const u_char *packet,
   fprintf(stdout, "\n");
 }
 
+/**
+ * @brief Get the ipv4 packet info
+ *
+ * @param packet
+ * @param packet_header
+ * @param packet_data
+ */
 void get_ipv4_packet_info(const u_char *packet,
                           const struct pcap_pkthdr *packet_header,
                           packet_data_t *packet_data) {
@@ -316,6 +336,13 @@ void get_ipv4_packet_info(const u_char *packet,
   }
 }
 
+/**
+ * @brief Get the ipv6 packet info
+ *
+ * @param packet
+ * @param packet_header
+ * @param packet_data
+ */
 void get_ipv6_packet_info(const u_char *packet,
                           const struct pcap_pkthdr *packet_header,
                           packet_data_t *packet_data) {
@@ -369,34 +396,45 @@ void get_ipv6_packet_info(const u_char *packet,
   }
 }
 
+/**
+ * @brief Get the arp packet info
+ *
+ * @param packet
+ * @param packet_header
+ * @param packet_data
+ */
 void get_arp_packet_info(const u_char *packet,
                          const struct pcap_pkthdr *packet_header,
                          packet_data_t *packet_data) {
-
   const u_char *arp_header;
-
   arp_header = packet + ETHERNET_HEADER_LENGHT;
 
-  if (*(arp_header + 2) == 0x08) {
-    inet_ntop(AF_INET, (struct in_addr *)(arp_header + 8),
-              packet_data->source_ip, INET_ADDRSTRLEN);
+  if (*(arp_header + 2) == 0x08) { // ipv4
     inet_ntop(AF_INET, (struct in_addr *)(arp_header + 14),
+              packet_data->source_ip, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, (struct in_addr *)(arp_header + 24),
               packet_data->destination_ip, INET_ADDRSTRLEN);
 
-  } else if (*(arp_header + 2) == 0x86 && *(arp_header + 4) == 0xdd) {
-    inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 8),
-              packet_data->source_ip, INET6_ADDRSTRLEN);
+  } else if (*(arp_header + 2) == 0x86 && *(arp_header + 4) == 0xdd) { // ipv6
     inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 14),
+              packet_data->source_ip, INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 24),
               packet_data->destination_ip, INET_ADDRSTRLEN);
   }
   // filter ethernet type
   strcpy(packet_data->protocol, "ARP");
 }
 
-/// returns when the packet is processed, 0 when packet was filtered out
+/**
+ * @brief Packet handler
+ *
+ * @param conf
+ * @param packet_header
+ * @param packet_body
+ * @return int - 1 when packet was processed, 0 when packet was filtered out
+ */
 int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
-                       const u_char *packet_body) {
-
+                   const u_char *packet_body) {
   struct ether_header *eth_header;
   packet_data_t packet_data;
   packet_data = {
@@ -414,10 +452,14 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
   };
   argsT args = *(argsT *)conf;
 
+  // gets the ethernet header
   eth_header = (struct ether_header *)packet_body;
-  char timestamp[50];
+  // gets timestamp
+  char timestamp[100];
   format_timestamp(packet_header->ts, timestamp);
   strcpy(packet_data.timestamp, timestamp);
+
+  // gets mac addresses from ethernet header
   strcpy(packet_data.source_mac,
          ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
   strcpy(packet_data.destination_mac,
@@ -470,15 +512,13 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
       return 1;
     }
   }
+  return 0;
 }
 
-//TODO: zjisti jak se používá ntohs ntohl
-//TODO: pcap close
-//TODO: https://npcap.com/guide/wpcap/pcap-filter.html mozna pouzij filtry
+// TODO: zjisti jak se používá ntohs ntohl
 int main(int argc, const char *argv[]) {
-
+  signal(SIGINT, INThandler);
   argsT args = parseArgs(argc, argv);
-
   if (args.help) {
     printHelp();
     return 0;
@@ -488,38 +528,29 @@ int main(int argc, const char *argv[]) {
   }
   if (strcmp(args.interface, "") == 0 ||
       (!args.arp && !args.icmp4 && !args.icmp6 && !args.tcp && !args.udp &&
-       !args.num && !args.port && strcmp(args.interface , "")==0)) {
+       !args.num && !args.port && strcmp(args.interface, "") == 0)) {
     print_active_ndevices();
     return 0;
   }
-
-  // printHelp();
-
   char error_buffer[PCAP_ERRBUF_SIZE];
-  pcap_t *handle = pcap_create(args.interface, error_buffer);
+  handle = pcap_create(args.interface, error_buffer);
   pcap_set_promisc(handle, 1);
   pcap_set_snaplen(handle, 2048);
   pcap_set_timeout(handle, 100);
   pcap_activate(handle);
-  if(pcap_datalink(handle) != DLT_EN10MB){
+  if (pcap_datalink(handle) != DLT_EN10MB) {
     printf("Wrong datalink type");
     return 1;
   }
 
-
-
-  //TODO: fix number of packets so packtest that are not printed are not counted
-  //pcap_loop(handle, args.num, packet_handler, (u_char *)&args);
-
-    int processed_packets = 0;
-    while(args.num >= processed_packets){
-        const u_char *packet_body;
-        struct pcap_pkthdr *packet_header;
-        pcap_next_ex(handle, &packet_header, &packet_body);
-       processed_packets += packet_handler((u_char *)&args, packet_header, packet_body);
-    }
-
-  /* handle is ready for use with pcap_next() or pcap_loop() */
+  int processed_packets = 0;
+  while (args.num >= processed_packets) {
+    const u_char *packet_body;
+    struct pcap_pkthdr *packet_header;
+    pcap_next_ex(handle, &packet_header, &packet_body);
+    processed_packets +=
+        packet_handler((u_char *)&args, packet_header, packet_body);
+  }
   printf("%s", error_buffer);
   pcap_close(handle);
   return 0;
