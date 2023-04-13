@@ -51,7 +51,7 @@
  */
 typedef struct args_t {
   char *interface;
-  bool port;
+  int port;
   bool tcp;
   bool udp;
   bool arp;
@@ -96,7 +96,7 @@ argsT parseArgs(int argc, const char *argv[]) {
   argsT args;
   args.err = false;
   args.help = false;
-  args.port = false;
+  args.port = 0;
   args.tcp = false;
   args.udp = false;
   args.arp = false;
@@ -378,14 +378,12 @@ void get_arp_packet_info(const u_char *packet,
   arp_header = packet + ETHERNET_HEADER_LENGHT;
 
   if (*(arp_header + 2) == 0x08) {
-    printf("IPV4_______________________");
     inet_ntop(AF_INET, (struct in_addr *)(arp_header + 8),
               packet_data->source_ip, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, (struct in_addr *)(arp_header + 14),
               packet_data->destination_ip, INET_ADDRSTRLEN);
 
   } else if (*(arp_header + 2) == 0x86 && *(arp_header + 4) == 0xdd) {
-    printf("IPV6_______________________");
     inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 8),
               packet_data->source_ip, INET6_ADDRSTRLEN);
     inet_ntop(AF_INET6, (struct in6_addr *)(arp_header + 14),
@@ -395,8 +393,8 @@ void get_arp_packet_info(const u_char *packet,
   strcpy(packet_data->protocol, "ARP");
 }
 
-// TPDO:rewrite
-void my_packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
+/// returns when the packet is processed, 0 when packet was filtered out
+int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
                        const u_char *packet_body) {
 
   struct ether_header *eth_header;
@@ -433,7 +431,7 @@ void my_packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
     get_ipv6_packet_info(packet_body, packet_header, &packet_data);
   } else {
     printf("eth type: %04x", ntohs(eth_header->ether_type));
-    return;
+    return 0;
   }
 
   if ((args.tcp == 1 && strcmp(packet_data.protocol, "TCP") == 0) ||
@@ -469,10 +467,14 @@ void my_packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
       if (packet_body != NULL)
         print_packet_data(packet_body, packet_header);
       printf("\n\n");
+      return 1;
     }
   }
 }
 
+//TODO: zjisti jak se používá ntohs ntohl
+//TODO: pcap close
+//TODO: https://npcap.com/guide/wpcap/pcap-filter.html mozna pouzij filtry
 int main(int argc, const char *argv[]) {
 
   argsT args = parseArgs(argc, argv);
@@ -499,8 +501,24 @@ int main(int argc, const char *argv[]) {
   pcap_set_snaplen(handle, 2048);
   pcap_set_timeout(handle, 100);
   pcap_activate(handle);
-  pcap_datalink(handle);
-  printf("%d", pcap_loop(handle, args.num, my_packet_handler, (u_char *)&args));
+  if(pcap_datalink(handle) != DLT_EN10MB){
+    printf("Wrong datalink type");
+    return 1;
+  }
+
+
+
+  //TODO: fix number of packets so packtest that are not printed are not counted
+  //pcap_loop(handle, args.num, packet_handler, (u_char *)&args);
+
+    int processed_packets = 0;
+    while(args.num >= processed_packets){
+        const u_char *packet_body;
+        struct pcap_pkthdr *packet_header;
+        pcap_next_ex(handle, &packet_header, &packet_body);
+       processed_packets += packet_handler((u_char *)&args, packet_header, packet_body);
+    }
+
   /* handle is ready for use with pcap_next() or pcap_loop() */
   printf("%s", error_buffer);
   pcap_close(handle);
