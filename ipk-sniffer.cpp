@@ -100,7 +100,7 @@ void INThandler(int sig) {
  * @param argv
  * @return argsT
  */
-argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
+argsT parseArgs(int argc, const char *argv[]) {
 
   // initialize args
   argsT args;
@@ -112,7 +112,7 @@ argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
   args.arp = false;
   args.icmp4 = false;
   args.icmp6 = false;
-  args.num = 0;
+  args.num = 1;
   args.IGMP = false;
   args.MLD = false;
   args.NDP = false;
@@ -199,6 +199,7 @@ argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
   }
   return args;
 }
+//TODO: icmp6 packets better filtering
 
 /**
  * @brief prints help
@@ -226,12 +227,41 @@ void printHelp() {
          "\\_\\    \\ \\_____\\  \\ \\_\\ \\_\\\n"
          "        \\/_____/   \\/_/ \\/_/   \\/_/   \\/_/     \\/_/     "
          "\\/_____/   \\/_/ /_/\n");
-  // TODO: fix help
-  printf("client for the IPK Calculator Protocol\n\n");
-  printf("Usage: ipkcpc -h <host> -p <port> -m <mode>\n\n");
-  printf("  -p <port>   port of the server\n");
-  printf("  -m <mode>   tcp or udp\n");
-  printf(" --help   print this help\n");
+  /*
+  -i eth0 (just one interface to sniff) or --interface. If this parameter is not specified (and any other parameters as well), or if only -i/--interface is specified without a value (and any other parameters are unspecified), a list of active interfaces is printed (additional information beyond the interface list is welcome but not required).
+-t or --tcp (will display TCP segments and is optionally complemented by -p functionality).
+-u or --udp (will display UDP datagrams and is optionally complemented by-p functionality).
+-p 23 (extends previous two parameters to filter TCP/UDP based on port number; if this parameter is not present, then no filtering by port number occurs; if the parameter is given, the given port can occur in both the source and destination part of TCP/UDP headers).
+--icmp4 (will display only ICMPv4 packets).
+--icmp6 (will display only ICMPv6 echo request/response).
+--arp (will display only ARP frames).
+--ndp (will display only ICMPv6 NDP packets).
+--igmp (will display only IGMP packets).
+--mld (will display only MLD packets).
+Unless protocols are explicitly specified, all (i.e., all content, regardless of protocol) are considered for printing.
+-n 10 (specifies the number of packets to display, i.e., the "time" the program runs; if not specified, consider displaying only one packet, i.e., as if -n 1)
+All arguments can be in any order.
+  */
+  printf("\nNetwork analyzer that is able to capture and filter packets on a specific network interface.\n\n");
+  printf("Usage: ipk-sniffer [-i interface | --interface interface] {-p port [--tcp|-t] [--udp|-u]} [--arp] [--icmp4] [--icmp6] [--igmp] [--mld] {-n num}\n\n");
+    printf("Options:\n");
+    printf("\t-i eth0 (just one interface to sniff) or --interface. If this parameter is not specified (and any other parameters as well), or if only -i/--interface is specified without a value (and any other parameters are unspecified), a list of active interfaces is printed.");
+    printf("\t-t or --tcp (will display TCP segments and is optionally complemented by -p functionality).\n");
+    printf("\t-u or --udp (will display UDP datagrams and is optionally complemented by-p functionality).\n");
+    printf("\t-p 23 (extends previous two parameters to filter TCP/UDP based on port number; if this parameter is not present, then no filtering by port number occurs; if the parameter is given, the given port can occur in both the source and destination part of TCP/UDP headers).\n");
+    printf("\t--icmp4 (will display only ICMPv4 packets).\n");
+    printf("\t--icmp6 (will display only ICMPv6 echo request/response).\n");
+    printf("\t--arp (will display only ARP frames).\n");
+    printf("\t--ndp (will display only ICMPv6 NDP packets).\n");
+    printf("\t--igmp (will display only IGMP packets).\n");
+    printf("\t--mld (will display only MLD packets).\n");
+    printf("\tUnless protocols are explicitly specified, all (i.e., all content, regardless of protocol) are considered for printing.\n");
+    printf("\t-n 10 (specifies the number of packets to display, i.e., the \"time\" the program runs; if not specified, only one packet is displayed)\n");
+    printf("\tAll arguments can be in any order.\n\n");
+    printf("Author: René Češka <xceska06@fit.vutbr.cz>");
+
+
+
   printf("\n\n");
   printf("Example: ipkcpc -h 1.2.3.4 -p 2023 -m udp\n");
 }
@@ -451,6 +481,21 @@ void get_arp_packet_info(const u_char *packet,
 }
 
 /**
+ * @brief fixed version of ntoa that doesnt reamove leading zeroes
+ *
+ * @param addr
+ * @return char*
+ */
+char *ntoa_fixed(const struct ether_addr *addr) {
+  char *str = (char *)malloc(18);
+  sprintf(str, "%02x:%02x:%02x:%02x:%02x:%02x", addr->ether_addr_octet[0],
+          addr->ether_addr_octet[1], addr->ether_addr_octet[2],
+          addr->ether_addr_octet[3], addr->ether_addr_octet[4],
+          addr->ether_addr_octet[5]);
+  return str;
+}
+
+/**
  * @brief Packet handler
  *
  * @param conf
@@ -486,9 +531,9 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
 
   // gets mac addresses from ethernet header
   strcpy(packet_data.source_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_shost));
+         ntoa_fixed((const struct ether_addr *)&eth_header->ether_shost));
   strcpy(packet_data.destination_mac,
-         ether_ntoa((const struct ether_addr *)&eth_header->ether_dhost));
+         ntoa_fixed((const struct ether_addr *)&eth_header->ether_dhost));
 
   if (ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
     get_ipv4_packet_info(packet_body, packet_header, &packet_data);
@@ -542,7 +587,7 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
   return 0;
 }
 
-// TODO: zjisti jak se používá ntohs ntohl
+
 int main(int argc, const char *argv[]) {
   signal(SIGINT, INThandler);
   argsT args = parseArgs(argc, argv);
@@ -571,7 +616,7 @@ int main(int argc, const char *argv[]) {
   }
 
   int processed_packets = 0;
-  while (args.num >= processed_packets) {
+  while (args.num > processed_packets) {
     const u_char *packet_body;
     struct pcap_pkthdr *packet_header;
     pcap_next_ex(handle, &packet_header, &packet_body);
