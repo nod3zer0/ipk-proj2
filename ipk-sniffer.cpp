@@ -62,6 +62,7 @@ typedef struct packet_data_t {
   bool NDP;
   bool IGMP;
   bool MLD;
+  bool icmp6_request_response;
   uint16_t source_port;
   uint16_t destination_port;
 } packetDataT;
@@ -227,29 +228,7 @@ void printHelp() {
          "\\_\\    \\ \\_____\\  \\ \\_\\ \\_\\\n"
          "        \\/_____/   \\/_/ \\/_/   \\/_/   \\/_/     \\/_/     "
          "\\/_____/   \\/_/ /_/\n");
-  /*
-  -i eth0 (just one interface to sniff) or --interface. If this parameter is not
-specified (and any other parameters as well), or if only -i/--interface is
-specified without a value (and any other parameters are unspecified), a list of
-active interfaces is printed (additional information beyond the interface list
-is welcome but not required). -t or --tcp (will display TCP segments and is
-optionally complemented by -p functionality). -u or --udp (will display UDP
-datagrams and is optionally complemented by-p functionality). -p 23 (extends
-previous two parameters to filter TCP/UDP based on port number; if this
-parameter is not present, then no filtering by port number occurs; if the
-parameter is given, the given port can occur in both the source and destination
-part of TCP/UDP headers).
---icmp4 (will display only ICMPv4 packets).
---icmp6 (will display only ICMPv6 echo request/response).
---arp (will display only ARP frames).
---ndp (will display only ICMPv6 NDP packets).
---igmp (will display only IGMP packets).
---mld (will display only MLD packets).
-Unless protocols are explicitly specified, all (i.e., all content, regardless of
-protocol) are considered for printing. -n 10 (specifies the number of packets to
-display, i.e., the "time" the program runs; if not specified, consider
-displaying only one packet, i.e., as if -n 1) All arguments can be in any order.
-  */
+
   printf("\nNetwork analyzer that is able to capture and filter packets on a "
          "specific network interface.\n\n");
   printf("Usage: ipk-sniffer [-i interface | --interface interface] {-p port "
@@ -260,7 +239,7 @@ displaying only one packet, i.e., as if -n 1) All arguments can be in any order.
       "\t-i eth0 (just one interface to sniff) or --interface. If this "
       "parameter is not specified (and any other parameters as well), or if "
       "only -i/--interface is specified without a value (and any other "
-      "parameters are unspecified), a list of active interfaces is printed.");
+      "parameters are unspecified), a list of active interfaces is printed.\n");
   printf("\t-t or --tcp (will display TCP segments and is optionally "
          "complemented by -p functionality).\n");
   printf("\t-u or --udp (will display UDP datagrams and is optionally "
@@ -331,7 +310,7 @@ void print_active_ndevices() {
  */
 void print_packet_data(const u_char *packet,
                        const struct pcap_pkthdr *packet_header) {
-  int i = 0;
+  bpf_u_int32 i = 0;
   while (i < packet_header->len) {
     fprintf(stdout, "0x%04x:\t", i);
 
@@ -472,6 +451,8 @@ void get_ipv6_packet_info(const u_char *packet,
       packet_data->NDP = true;
     } else if (type == 130 || type == 131 || type == 132) {
       packet_data->MLD = true;
+    } else if (type == 128 || type == 129) {
+      packet_data->icmp6_request_response = true;
     }
     break;
   }
@@ -575,7 +556,7 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
   if ((args.tcp == 1 && strcmp(packet_data.protocol, "TCP") == 0) ||
       (args.udp == 1 && strcmp(packet_data.protocol, "UDP") == 0) ||
       (args.icmp4 == 1 && strcmp(packet_data.protocol, "ICMP4") == 0) ||
-      (args.icmp6 == 1 && strcmp(packet_data.protocol, "ICMP6") == 0) ||
+      (args.icmp6 == 1 && packet_data.icmp6_request_response == 1) ||
       (args.arp == 1 && strcmp(packet_data.protocol, "ARP") == 0) ||
       (args.IGMP == 1 && packet_data.IGMP == true) ||
       (args.NDP == 1 && packet_data.NDP == true) ||
