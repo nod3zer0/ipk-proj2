@@ -88,7 +88,10 @@ void get_arp_packet_info(const u_char *packet,
 int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
                    const u_char *packet_body);
 
-void INThandler(int sig) { pcap_close(handle); }
+void INThandler(int sig) {
+    pcap_close(handle);
+    exit(0);
+    }
 
 /**
  * @brief parses arguments for sniffer
