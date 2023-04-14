@@ -258,31 +258,7 @@ void print_active_ndevices() {
 void print_packet_data(
     const u_char *packet,
     const struct pcap_pkthdr
-        *packet_header) { // TODO: last line is not printed in ascii
-  // print payload
-  //   for (unsigned int i = 0; i < packet_header->len; i++) {
-  //     // print new line every 16 bytes
-  //     if (i % 16 == 0) {
-  //       // print ascii representation
-  //       fprintf(stdout, "\t");
-  //       for (unsigned int j = i - 16; j < i && i != 0; j++) {
-
-  //         if (j == i - 8 && i != 0) {
-  //           fprintf(stdout, " ");
-  //         }
-  //         // is printable
-  //         if (packet[j] >= 32 && packet[j] <= 128) {
-  //           fprintf(stdout, "%c", packet[j]);
-  //         } else {
-  //           fprintf(stdout, ".");
-  //         }
-  //       }
-  //       fprintf(stdout, "\n0x%04x:\t", i);
-  //     }
-  //     fprintf(stdout, "%02x ", packet[i]);
-  //   }
-  //   fprintf(stdout, "\n");
-
+        *packet_header) {
   int i = 0;
   while (i < packet_header->len) {
     fprintf(stdout, "0x%04x:\t", i);
@@ -294,7 +270,7 @@ void print_packet_data(
         fprintf(stdout, "   ");
       }
     }
-    for (unsigned int j = i ; j < i +16; j++) {
+    for (unsigned int j = i ; j < i +16 && j< packet_header->len; j++) {
 
       if (j == i - 8 && i != 0) {
         fprintf(stdout, " ");
