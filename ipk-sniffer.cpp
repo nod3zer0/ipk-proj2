@@ -89,9 +89,9 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
                    const u_char *packet_body);
 
 void INThandler(int sig) {
-    pcap_close(handle);
-    exit(0);
-    }
+  pcap_close(handle);
+  exit(0);
+}
 
 /**
  * @brief parses arguments for sniffer
@@ -119,7 +119,7 @@ argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
   args.interface = (char *)malloc(sizeof(char) * 1000);
 
   // main loop for parsing arguments
-  for (int i = 0; i < argc; i++) {
+  for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interface") == 0) {
       // check if there is value for host and if it is not too long
 
@@ -133,6 +133,8 @@ argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
         }
         strcpy(args.interface, argv[i + 1]);
       }
+      i++; // skip next argument
+      continue;
     }
     if (strcmp(argv[i], "-p") == 0) {
       // check if there is value for port and if it is in range
@@ -142,30 +144,40 @@ argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
         return args;
       }
       args.port = atoi(argv[i + 1]);
+      i++; // skip next argument
+      continue;
     }
     if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--tcp") == 0) {
       args.tcp = true;
+      continue;
     }
     if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--udp") == 0) {
       args.udp = true;
+      continue;
     }
     if (strcmp(argv[i], "--arp") == 0) {
       args.arp = true;
+      continue;
     }
     if (strcmp(argv[i], "--icmp4") == 0) {
       args.icmp4 = true;
+      continue;
     }
     if (strcmp(argv[i], "--icmp6") == 0) {
       args.icmp6 = true;
+      continue;
     }
     if (strcmp(argv[i], "--ndp") == 0) {
       args.NDP = true;
+      continue;
     }
     if (strcmp(argv[i], "--igmp") == 0) {
       args.IGMP = true;
+      continue;
     }
     if (strcmp(argv[i], "--mld") == 0) {
       args.MLD = true;
+      continue;
     }
     if (strcmp(argv[i], "-n") == 0) {
       if (i + 1 >= argc || atoi(argv[i + 1]) <= 0) {
@@ -173,10 +185,17 @@ argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
         return args;
       }
       args.num = atoi(argv[i + 1]);
+      i++; // skip next argument
+      continue;
     }
     if (strcmp(argv[i], "--help") == 0) {
       args.help = true;
+      continue;
     }
+    // check if there is unknown argument
+    fprintf(stderr, "Unknown argument: %s\n", argv[i]);
+    args.err = true;
+    return args;
   }
   return args;
 }
@@ -258,22 +277,20 @@ void print_active_ndevices() {
  * @param packet
  * @param packet_header
  */
-void print_packet_data(
-    const u_char *packet,
-    const struct pcap_pkthdr
-        *packet_header) {
+void print_packet_data(const u_char *packet,
+                       const struct pcap_pkthdr *packet_header) {
   int i = 0;
   while (i < packet_header->len) {
     fprintf(stdout, "0x%04x:\t", i);
 
-    for (unsigned int j = i; j < i +16; j++) {
+    for (unsigned int j = i; j < i + 16; j++) {
       if (j < packet_header->len) {
         fprintf(stdout, "%02x ", packet[i + j]);
       } else {
         fprintf(stdout, "   ");
       }
     }
-    for (unsigned int j = i ; j < i +16 && j< packet_header->len; j++) {
+    for (unsigned int j = i; j < i + 16 && j < packet_header->len; j++) {
 
       if (j == i - 8 && i != 0) {
         fprintf(stdout, " ");
