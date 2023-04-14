@@ -97,7 +97,7 @@ void INThandler(int sig) { pcap_close(handle); }
  * @param argv
  * @return argsT
  */
-argsT parseArgs(int argc, const char *argv[]) {
+argsT parseArgs(int argc, const char *argv[]) { // TODO: unknown arg err
 
   // initialize args
   argsT args;
@@ -255,31 +255,60 @@ void print_active_ndevices() {
  * @param packet
  * @param packet_header
  */
-void print_packet_data(const u_char *packet,
-                       const struct pcap_pkthdr *packet_header) {
+void print_packet_data(
+    const u_char *packet,
+    const struct pcap_pkthdr
+        *packet_header) { // TODO: last line is not printed in ascii
   // print payload
-  for (unsigned int i = 0; i < packet_header->len; i++) {
-    // print new line every 16 bytes
-    if (i % 16 == 0) {
-      // print ascii representation
-      fprintf(stdout, "\t");
-      for (unsigned int j = i - 16; j < i && i != 0; j++) {
+  //   for (unsigned int i = 0; i < packet_header->len; i++) {
+  //     // print new line every 16 bytes
+  //     if (i % 16 == 0) {
+  //       // print ascii representation
+  //       fprintf(stdout, "\t");
+  //       for (unsigned int j = i - 16; j < i && i != 0; j++) {
 
-        if (j == i - 8 && i != 0) {
-          fprintf(stdout, " ");
-        }
-        // is printable
-        if (packet[j] >= 32 && packet[j] <= 128) {
-          fprintf(stdout, "%c", packet[j]);
-        } else {
-          fprintf(stdout, ".");
-        }
+  //         if (j == i - 8 && i != 0) {
+  //           fprintf(stdout, " ");
+  //         }
+  //         // is printable
+  //         if (packet[j] >= 32 && packet[j] <= 128) {
+  //           fprintf(stdout, "%c", packet[j]);
+  //         } else {
+  //           fprintf(stdout, ".");
+  //         }
+  //       }
+  //       fprintf(stdout, "\n0x%04x:\t", i);
+  //     }
+  //     fprintf(stdout, "%02x ", packet[i]);
+  //   }
+  //   fprintf(stdout, "\n");
+
+  int i = 0;
+  while (i < packet_header->len) {
+    fprintf(stdout, "0x%04x:\t", i);
+
+    for (unsigned int j = i; j < i +16; j++) {
+      if (j < packet_header->len) {
+        fprintf(stdout, "%02x ", packet[i + j]);
+      } else {
+        fprintf(stdout, "   ");
       }
-      fprintf(stdout, "\n0x%04x:\t", i);
     }
-    fprintf(stdout, "%02x ", packet[i]);
+    for (unsigned int j = i ; j < i +16; j++) {
+
+      if (j == i - 8 && i != 0) {
+        fprintf(stdout, " ");
+      }
+      // is printable
+      if (packet[j] >= 32 && packet[j] <= 128) {
+        fprintf(stdout, "%c", packet[j]);
+      } else {
+        fprintf(stdout, ".");
+      }
+    }
+    fprintf(stdout, "\n");
+    i += 16;
   }
-  fprintf(stdout, "\n");
 }
 
 /**
@@ -488,7 +517,9 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
        args.arp == 0 && args.IGMP == 0 && args.NDP == 0 && args.MLD == 0)) {
 
     if (args.port == 0 || args.port == packet_data.source_port ||
-        args.port == packet_data.destination_port) {
+        args.port == packet_data.destination_port ||
+        ((strcmp(packet_data.protocol, "TCP") != 0) &&
+         (strcmp(packet_data.protocol, "UDP") != 0))) {
       if (strcmp(packet_data.timestamp, "") != 0)
         fprintf(stdout, "timestamp: %s\n", packet_data.timestamp);
       if (strcmp(packet_data.source_mac, "") != 0)
