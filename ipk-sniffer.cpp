@@ -521,6 +521,7 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
       .NDP = false,
       .IGMP = false,
       .MLD = false,
+      .icmp6_request_response = false,
       .source_port = 0,
       .destination_port = 0,
   };
