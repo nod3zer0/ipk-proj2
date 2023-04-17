@@ -7,8 +7,6 @@
  *
  */
 
-#ifdef __linux__ // linux header files
-
 #include <arpa/inet.h>
 #include <ctime>
 #include <netdb.h>
@@ -23,8 +21,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#endif
 
 #define ETHERNET_HEADER_LENGHT 14
 
@@ -200,7 +196,6 @@ argsT parseArgs(int argc, const char *argv[]) {
   }
   return args;
 }
-// TODO: icmp6 packets better filtering
 
 /**
  * @brief prints help
@@ -264,7 +259,7 @@ void printHelp() {
   printf("Author: René Češka <xceska06@fit.vutbr.cz>");
 
   printf("\n\n");
-  printf("Example: ipkcpc -h 1.2.3.4 -p 2023 -m udp\n");
+  printf("Example: ./ipk-sniffer -i eth0 --arp --ndp\n");
 }
 
 /**
@@ -312,8 +307,10 @@ void print_packet_data(const u_char *packet,
                        const struct pcap_pkthdr *packet_header) {
   bpf_u_int32 i = 0;
   while (i < packet_header->len) {
+    // print offset
     fprintf(stdout, "0x%04x:\t", i);
 
+    // print hex
     for (unsigned int j = i; j < i + 16; j++) {
       if (j < packet_header->len) {
         fprintf(stdout, "%02x ", packet[j]);
@@ -321,6 +318,7 @@ void print_packet_data(const u_char *packet,
         fprintf(stdout, "   ");
       }
     }
+    // ptrint ascii
     for (unsigned int j = i; j < i + 16 && j < packet_header->len; j++) {
 
       if (j == i + 8) {
@@ -424,7 +422,6 @@ void get_ipv6_packet_info(const u_char *packet,
             packet_data->destination_ip, INET6_ADDRSTRLEN);
 
   u_char protocol = *(ip_header + 6);
-
   switch (protocol) {
   case IPPROTO_TCP:
     strcpy(packet_data->protocol, "TCP");
@@ -541,18 +538,15 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
          ntoa_fixed((const struct ether_addr *)&eth_header->ether_shost));
   strcpy(packet_data.destination_mac,
          ntoa_fixed((const struct ether_addr *)&eth_header->ether_dhost));
-
+    //gets data from packet
   if (ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
     get_ipv4_packet_info(packet_body, packet_header, &packet_data);
   } else if (ntohs(eth_header->ether_type) == ETHERTYPE_ARP) {
     get_arp_packet_info(packet_body, packet_header, &packet_data);
   } else if (ntohs(eth_header->ether_type) == ETHERTYPE_IPV6) {
     get_ipv6_packet_info(packet_body, packet_header, &packet_data);
-  } else {
-    printf("eth type: %04x", ntohs(eth_header->ether_type));
-    return 0;
   }
-
+    //filters
   if ((args.tcp == 1 && strcmp(packet_data.protocol, "TCP") == 0) ||
       (args.udp == 1 && strcmp(packet_data.protocol, "UDP") == 0) ||
       (args.icmp4 == 1 && strcmp(packet_data.protocol, "ICMP4") == 0) ||
@@ -574,6 +568,8 @@ int packet_handler(u_char conf[], const struct pcap_pkthdr *packet_header,
         fprintf(stdout, "src MAC: %s\n", packet_data.source_mac);
       if (strcmp(packet_data.destination_mac, "") != 0)
         fprintf(stdout, "dst MAC: %s\n", packet_data.destination_mac);
+      if (packet_header->len > 0)
+        fprintf(stdout, "frame length: %d bytes\n", packet_header->len);
       if (strcmp(packet_data.source_ip, "") != 0)
         fprintf(stdout, "src IP: %s\n", packet_data.source_ip);
       if (strcmp(packet_data.destination_ip, "") != 0)
@@ -622,6 +618,7 @@ int main(int argc, const char *argv[]) {
   }
 
   int processed_packets = 0;
+  //main loop for processing packets
   while (args.num > processed_packets) {
     const u_char *packet_body;
     struct pcap_pkthdr *packet_header;
@@ -629,7 +626,6 @@ int main(int argc, const char *argv[]) {
     processed_packets +=
         packet_handler((u_char *)&args, packet_header, packet_body);
   }
-  printf("%s", error_buffer);
   pcap_close(handle);
   return 0;
 }
