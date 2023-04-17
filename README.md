@@ -14,7 +14,7 @@ version: 0.9.0
                     \/_____/   \/_/ \/_/   \/_/   \/_/     \/_/     \/_____/   \/_/ /_/
 
 
-source: https://patorjk.com/software/taag/#p=display&f=Sub-Zero&t=network%0A%20%20sniffer : sub-zero
+source [4]
 
 
 author: René Češka <xceska06@stud.fit.vutbr.cz>
@@ -47,9 +47,10 @@ Options:
 
 ## Testing
 
-testing was done using tool tcpreplay whitch can replay pcap files. I used pcap files from [1]. All used pcap files are in folder tests.
+Testing was done using tool tcpreplay[2] which can replay pcap files. I used pcap files from [1]. All used pcap files are in folder tests.
+Output of ipk-sniffer was compared to output of Wireshark[3].
 
-### Here are some examples of tests that I run
+### Here are some examples of tests that I have done:
 
 #### icmp4
 
@@ -58,23 +59,50 @@ testing icmp4 packet filtering
 ![icmp4-terminal](/doc-images/tests/term-icmp4)
 ![icmp4-wireshark](/doc-images/tests/wire-icmp4)
 
+#### igmp
 
+testing igmp packet filtering
+
+![igmp-terminal](/doc-images/tests/term-igmp)
+![igmp-wireshark](/doc-images/tests/wire-igmp)
+
+#### ivp6-tcp
+
+testing ipv6 tcp packet filtering
+
+![ipv6-tcp-terminal](/doc-images/tests/term-ipv6_tcp)
+![ipv6-tcp-wireshark](/doc-images/tests/wire-ipv6_tcp)
+
+#### port filtering
+
+testing port filtering
+
+existing packet:
+
+![port-terminal](/doc-images/tests/term-port-succes)
+
+nonexisting packet:
+
+![port-terminal](/doc-images/tests/term-port-fail)
+
+#### arp port
+
+testing what happens when port is specified with arp
+
+![arp-port-terminal](/doc-images/tests/term-arp_port)
+
+- port argument is ignored as expected
 
 # references
 [1] https://packetlife.net/captures/
+[2] https://tcpreplay.appneta.com/
+[3] https://www.wireshark.org/
+
 
 
 ----------------------------------------------
 This client sends exactly what user types. Commands are specified in IPK Calculator Protocol [1] . There are no timeouts, so server can compute it`s response for as long as user is willing to wait. If user wants to end program, at any time he can send SIGINT (CTRL +C) to end program.
 
-### UDP
-
-After sending message client waits for response from server indefinitely. If user wants to end program, he can send SIGINT (Ctrl + C) or EOF (Ctrl + d) to end program.
-
-### TCP
-
-After sending message client waits for response from server indefinitely. If user wants to end program, he can send SIGINT (Ctrl + C) or EOF (Ctrl + d) to end program.
-Program then sends BYE to server and waits for response from server. If user doesn't want to wait for response from server, he can send SIGINT (Ctrl + c) to end program (In windows needs to be send SIGQUIT (Ctrl + /) to end program).
 
 ## Theory
 
@@ -419,3 +447,5 @@ BYE
 [2] KOUTENSKÝ, Michal. DOLEJŠKA, Daniel. *IPK2023 – 03 – Programování (Dolejška, Koutenský)*[online]. [14.03.2023] Dostupné z: [https://moodle.vut.cz/pluginfile.php/550189/mod_folder/content/0/IPK2022-23L-03-PROGRAMOVANI.pdf?forcedownload=1](https://moodle.vut.cz/pluginfile.php/550189/mod_folder/content/0/IPK2022-23L-03-PROGRAMOVANI.pdf?forcedownload=1)
 
 [3] KOUTENSKÝ, Michal. VESELY, Vladimir. RYSAVY, Ondrej. *Stubs*[online]. [19.03.2023] Dostupné z: [https://git.fit.vutbr.cz/NESFIT/IPK-Projekty/src/branch/master/Stubs/cpp](https://git.fit.vutbr.cz/NESFIT/IPK-Projekty/src/branch/master/Stubs/cpp)
+
+[4] https://patorjk.com/software/taag/#p=display&f=Sub-Zero&t=network%0A%20%20sniffer : sub-zero
