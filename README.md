@@ -84,7 +84,7 @@ testing igmp packet filtering
 testing ipv6 tcp packet filtering
 
 ![ipv6-tcp-terminal](/doc-images/tests/term-ipv6_tcp)
-![ipv6-tcp-wireshark](/doc-images/tests/wire-ipv6_tcp)
+![ipv6-tcp-wireshark](/doc-images/tests/wire-ipv6-tcp)
 
 #### port filtering
 
