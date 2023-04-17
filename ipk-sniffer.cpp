@@ -2,7 +2,7 @@
  * @file ipk-sniffer.c
  * @author Rene Ceska (xceska06@fit.vutbr.cz)
  * @brief
- * @version 0.9.0
+ * @version 1.0.0
  * @date 2023-04-13
  *
  */
