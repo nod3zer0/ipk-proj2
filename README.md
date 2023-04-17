@@ -215,19 +215,34 @@ testing what happens when port is specified with arp
 - port argument is ignored as expected
 
 # references
-[1] packet-life - https://packetlife.net/captures/
-[2] tcpreplay - https://tcpreplay.appneta.com/
-[3] wireshark - https://www.wireshark.org/
-[4] tcpdump - https://www.tcpdump.org/pcap.html
-[5] devdungeon - https://www.devdungeon.com/content/using-libpcap-c
-[6] ascii art generator - https://patorjk.com/software/taag/#p=display&f=Sub-Zero&t=network%0A%20%20sniffer : sub-zero
-[7] icmpv6 - https://en.wikipedia.org/wiki/ICMPv6
-[8] igmp - https://en.wikipedia.org/wiki/Internet_Group_Management_Protocol
-[9] icmp - https://cs.wikipedia.org/wiki/ICMP
-[10] arp - https://cs.wikipedia.org/wiki/Address_Resolution_Protocol
-[11] udp -https://en.wikipedia.org/wiki/User_Datagram_Protocol
-[12] tcp -https://cs.wikipedia.org/wiki/Transmission_Control_Protocol
-[13] ipv6 - https://en.wikipedia.org/wiki/IPv6_packet
-[14] ipv4 - https://en.wikipedia.org/wiki/Internet_Protocol_version_4
-[15] ethernet - https://en.wikipedia.org/wiki/Ethernet_frame
+
+- [1] packet-life - https://packetlife.net/captures/
+
+- [2] tcpreplay - https://tcpreplay.appneta.com/
+
+- [3] wireshark - https://www.wireshark.org/
+
+- [4] tcpdump - https://www.tcpdump.org/pcap.html
+
+- [5] devdungeon - https://www.devdungeon.com/content/using-libpcap-c
+
+- [6] ascii art generator - https://patorjk.com/software/taag/#p=display&f=Sub-Zero&t=network%0A%20%20sniffer : sub-zero
+
+- [7] icmpv6 - https://en.wikipedia.org/wiki/ICMPv6
+
+- [8] igmp - https://en.wikipedia.org/wiki/Internet_Group_Management_Protocol
+
+- [9] icmp - https://cs.wikipedia.org/wiki/ICMP
+
+- [10] arp - https://cs.wikipedia.org/wiki/Address_Resolution_Protocol
+
+- [11] udp -https://en.wikipedia.org/wiki/User_Datagram_Protocol
+
+- [12] tcp -https://cs.wikipedia.org/wiki/Transmission_Control_Protocol
+
+- [13] ipv6 - https://en.wikipedia.org/wiki/IPv6_packet
+
+- [14] ipv4 - https://en.wikipedia.org/wiki/Internet_Protocol_version_4
+
+- [15] ethernet - https://en.wikipedia.org/wiki/Ethernet_frame
 
