@@ -78,36 +78,36 @@ Some parts of code were inspired by these sources [4][5]
 
 #### Ethernet
 
-Ethernet header is 14 bytes long. It's alues that ipk-sniffer is interested in are `ether_type` and source and destination MAC address. [16]
+Ethernet header is 14 bytes long. It's alues that ipk-sniffer is interested in are `ether_type` and source and destination MAC address. [15]
 
 #### IPv4
 
 
-It's values that ipk-sniffer is interested in are header_lenght, `protocol` and source and destination IP address. [15]
+It's values that ipk-sniffer is interested in are header_lenght, `protocol` and source and destination IP address. [14]
 
 #### IPv6
 
-IPv6 header is 40 bytes long. It's values that ipk-sniffer is interested in are `protocol` and source and destination IP address. [14]
+IPv6 header is 40 bytes long. It's values that ipk-sniffer is interested in are `protocol` and source and destination IP address. [13]
 
 #### TCP
 
-TCP header is 20 bytes long. It's values that ipk-sniffer is interested in are source and destination port. [13]
+TCP header is 20 bytes long. It's values that ipk-sniffer is interested in are source and destination port. [12]
 
 #### UDP
 
-UDP header is 8 bytes long. It's values that ipk-sniffer is interested in are source and destination port. [12]
+UDP header is 8 bytes long. It's values that ipk-sniffer is interested in are source and destination port. [11]
 
 #### ARP
 
-ARP header is 28 bytes long. It's values that ipk-sniffer is interested in are `opcode` and source and destination IP addresses. [11]
+ARP header is 28 bytes long. It's values that ipk-sniffer is interested in are `opcode` and source and destination IP addresses. [10]
 
 #### ICMPv4
 
-It's type is stored in it's IPV4 header in `protocol`. [10]
+It's type is stored in it's IPV4 header in `protocol`. [9]
 
 #### ICMPv6
 
-It's type is stored in it's IPV6 header in `protocol`. [9]
+It's type is stored in it's IPV6 header in `protocol`. [7]
 #### IGMP
 
 It's type is stored in it's IPV4 header in `protocol`. [8]
@@ -215,20 +215,19 @@ testing what happens when port is specified with arp
 - port argument is ignored as expected
 
 # references
-[1] https://packetlife.net/captures/
-[2] https://tcpreplay.appneta.com/
-[3] https://www.wireshark.org/
-[4] https://www.tcpdump.org/pcap.html
-[5] https://www.devdungeon.com/content/using-libpcap-c
-[6] https://patorjk.com/software/taag/#p=display&f=Sub-Zero&t=network%0A%20%20sniffer : sub-zero
-[7] https://en.wikipedia.org/wiki/ICMPv6
-[8] https://en.wikipedia.org/wiki/Internet_Group_Management_Protocol
-[9] https://en.wikipedia.org/wiki/ICMPv6
-[10] https://cs.wikipedia.org/wiki/ICMP
-[11] https://cs.wikipedia.org/wiki/Address_Resolution_Protocol
-[12] https://en.wikipedia.org/wiki/User_Datagram_Protocol
-[13] https://cs.wikipedia.org/wiki/Transmission_Control_Protocol
-[14] https://en.wikipedia.org/wiki/IPv6_packet
-[15] https://en.wikipedia.org/wiki/Internet_Protocol_version_4
-[16] https://en.wikipedia.org/wiki/Ethernet_frame
+[1] packet-life - https://packetlife.net/captures/
+[2] tcpreplay - https://tcpreplay.appneta.com/
+[3] wireshark - https://www.wireshark.org/
+[4] tcpdump - https://www.tcpdump.org/pcap.html
+[5] devdungeon - https://www.devdungeon.com/content/using-libpcap-c
+[6] ascii art generator - https://patorjk.com/software/taag/#p=display&f=Sub-Zero&t=network%0A%20%20sniffer : sub-zero
+[7] icmpv6 - https://en.wikipedia.org/wiki/ICMPv6
+[8] igmp - https://en.wikipedia.org/wiki/Internet_Group_Management_Protocol
+[9] icmp - https://cs.wikipedia.org/wiki/ICMP
+[10] arp - https://cs.wikipedia.org/wiki/Address_Resolution_Protocol
+[11] udp -https://en.wikipedia.org/wiki/User_Datagram_Protocol
+[12] tcp -https://cs.wikipedia.org/wiki/Transmission_Control_Protocol
+[13] ipv6 - https://en.wikipedia.org/wiki/IPv6_packet
+[14] ipv4 - https://en.wikipedia.org/wiki/Internet_Protocol_version_4
+[15] ethernet - https://en.wikipedia.org/wiki/Ethernet_frame
 
