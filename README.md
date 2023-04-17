@@ -27,21 +27,34 @@ Network analyzer that is able to capture and filter packets on a specific networ
 
 Usage: ipk-sniffer [-i interface | --interface interface] {-p port [--tcp|-t] [--udp|-u]} [--arp] [--icmp4] [--icmp6] [--igmp] [--mld] {-n num}
 
+
 Options:
-        -i eth0 (just one interface to sniff) or --interface. If this parameter is not specified (and any other parameters as well), or if only -i/--interface is specified without a value (and any other parameters are unspecified), a list of active interfaces is printed.
-        -t or --tcp (will display TCP segments and is optionally complemented by -p functionality).
-        -u or --udp (will display UDP datagrams and is optionally complemented by-p functionality).
-        -p 23 (extends previous two parameters to filter TCP/UDP based on port number; if this parameter is not present, then no filtering by port number occurs; if the parameter is given, the given port can occur in both the source and destination part of TCP/UDP headers).
-        --icmp4 (will display only ICMPv4 packets).
-        --icmp6 (will display only ICMPv6 echo request/response).
-        --arp (will display only ARP frames).
-        --ndp (will display only ICMPv6 NDP packets).
-        --igmp (will display only IGMP packets).
-        --mld (will display only MLD packets).
+
+       - -i eth0 (just one interface to sniff) or --interface. If this parameter is not specified (and any other parameters as well), or if only -i/--interface is specified without a value (and any other parameters are unspecified), a list of active interfaces is printed.
+
+       - -t or --tcp (will display TCP segments and is optionally complemented by -p functionality).
+
+       - -u or --udp (will display UDP datagrams and is optionally complemented by-p functionality).
+
+       - -p 23 (extends previous two parameters to filter TCP/UDP based on port number; if this parameter is not present, then no filtering by port number occurs; if the parameter is given, the given port can occur in both the source and destination part of TCP/UDP headers).
+
+       - --icmp4 (will display only ICMPv4 packets).
+
+       - --icmp6 (will display only ICMPv6 echo request/response).
+
+       - --arp (will display only ARP frames).
+
+       - --ndp (will display only ICMPv6 NDP packets).
+
+       - --igmp (will display only IGMP packets).
+
+       - --mld (will display only MLD packets).
         Unless protocols are explicitly specified, all (i.e., all content, regardless of protocol) are considered for printing.
-        -n 10 (specifies the number of packets to display, i.e., the "time" the program runs; if not specified, only one packet is displayed)
+
+       - -n 10 (specifies the number of packets to display, i.e., the "time" the program runs; if not specified, only one packet is displayed)
         All arguments can be in any order.
-        --help displays help message
+
+       - --help displays help message
 
 
 
